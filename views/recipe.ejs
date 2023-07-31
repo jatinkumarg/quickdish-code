@@ -45,6 +45,7 @@
     <% } %>
   </div>
 </div>
+<%- include('modal.ejs'); %>
 <%- include('foot.ejs'); %>
 
 <script>
@@ -81,6 +82,9 @@
       .then((response) => {
         const res = response?.data;
         console.log('User Engagement results:', res)
+        if (res?._id) {
+          showToast('Response saved successfully!');
+        }
       })
       .catch((error) => {
         console.error('Error user engagement:', error);
