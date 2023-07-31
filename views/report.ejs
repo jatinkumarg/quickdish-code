@@ -1,0 +1,176 @@
+<%- include('head.ejs', {activeTab: 'report' }); %>
+<div class="container-fluid text-center align-items-center">
+  <div class="row align-items-center">
+    <div class="col"></div>
+    <div class="col" style="display: contents;">
+      <div class="input-group mb-3" style="max-width: 375px;">
+        <select id="type" class="form-select">
+          <option disabled>Select report type</option>
+          <option value="like" selected>Most liked meals</option>
+          <option value="dislike">Most disliked meals</option>
+          <option value="ratings">Most rated meals</option>
+          <option value="viewCount">Most viewed meals</option>
+        </select>
+        <button id="report" type="button" class="btn btn-outline-secondary">Get Report</button>
+      </div>
+      <br />
+      <br />
+    </div>
+    <div class="col"></div>
+  </div>
+  <div id="searchGroup" class="row align-items-center" style="display:none;">
+    <div class="col"></div>
+    <div class="col" style="display: contents;">
+      <div class="input-group mb-3" style="max-width: 375px;">
+        <select id="filter" class="form-select">
+          <option disabled>Select filter</option>
+          <option value="name" selected>Name</option>
+          <option value="mainIngredient">Main Ingredient</option>
+          <option value="category">Category</option>
+          <option value="area">Area</option>
+        </select>
+        <input id="searchInput" type="text" class="form-control" placeholder="Search Recipe" aria-label="Search Recipe">
+        <button id="search" type="button" class="btn btn-outline-secondary">Search</button>
+      </div>
+      <br />
+      <br />
+    </div>
+    <div class="col"></div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <div id="reportResults"></div>
+    </div>
+  </div>
+</div>
+<%- include('modal.ejs'); %>
+<%- include('foot.ejs'); %>
+
+<script>
+  var reportResults = [];
+  var cleanData = [];
+
+  $(document).ready(function() {
+    $('#report').click(() => getReport());
+
+    $('#search').click(() => doSearch());
+
+    // trigger search on enter
+    $('#searchInput').on('keydown', function(evt) {
+      if (evt.keyCode === 13) {
+        evt.preventDefault();
+        doSearch()
+      }
+    });
+  });
+
+  function getReport() {
+    const type = $('#type').val();
+    const data = {
+      name: name,
+      type: type
+    };
+
+    axios.get(`/api/report?type=${type}`)
+      .then((response) => {
+        const res = response?.data;
+        if (res?.length != 0) {
+          cleanData = null;
+          cleanData = res?.map((item) => {
+            return {
+              totalLikes: item?.totalLikes,
+              totalDislikes: item?.totalDislikes,
+              totalRatings: item?.totalRatings,
+              totalCounts: item?.totalCounts,
+              id: item?.recipeData[0]?.id,
+              _id: item?.recipeData[0]?._id,
+              name: item?.recipeData[0]?.name,
+              category: item?.recipeData[0]?.category,
+              area: item?.recipeData[0]?.area,
+              instructions: item?.recipeData[0]?.instructions,
+              imageLink: item?.recipeData[0]?.imageLink,
+              ingredients: item?.recipeData[0]?.ingredients,
+              viewCount: item?.recipeData[0]?.viewCount,
+            }
+          })
+
+          reportResults = createReportTableData(type);
+          $('#reportResults').html(reportResults);
+          $('#searchGroup').show();
+        }
+        console.log('Get report results:', cleanData)
+      })
+      .catch((error) => {
+        console.error('Error report:', error);
+      });
+  }
+
+
+  function doSearch() {
+    const searchInput = $("#searchInput")?.val()?.trim();
+    const filter = $("#filter")?.val();
+    const type = $('#type').val();
+
+    if (searchInput.length <= 0) {
+      $('#reportResults').html("<div>Please enter a search keyword.</div>");
+      return showToast("Please enter a search keyword.");
+    }
+    console.log('Searching for:', searchInput);
+    console.log('filter', filter);
+    console.log('type', type);
+
+    axios.post(`/api/searchReport?q=${searchInput}&filter=${filter}`, cleanData)
+      .then((response) => {
+        let data = response?.data;
+        console.log('Search results:', data);
+
+        if (data?.length <= 0) {
+          $('#reportResults').html("<div>No results! Please enter another search keyword.</div>");
+          return showToast('No results found!');
+        };
+        cleanData = data;
+
+        reportResults = createReportTableData(type);
+        $('#reportResults').html(reportResults);
+      })
+      .catch((error) => {
+        console.error('Error performing search:', error);
+      });
+  }
+
+  function createReportTableData(type) {
+    let tableData = `<table class="table">
+          <thead>
+            <tr>
+              <th id="mealId" scope="col">#</th>
+              <th id="mealImage"  scope="col">Image</th>
+              <th id="mealName" scope="col">Name</th>
+              <th class="${type != 'like' ? 'd-none' : ''}">Total Likes</th>
+              <th class="${type != 'dislike' ? 'd-none' : ''}">Total Dislikes</th>
+              <th class="${type != 'ratings' ? 'd-none' : ''}">Total Ratings</th>
+              <th class="${type != 'viewCount' ? 'd-none' : ''}">Total Views</th>
+              <th id="mealIngredient" scope="col">Main Ingredient</th>              
+              <th id="mealCategory" scope="col">Category</th>
+              <th id="mealArea" scope="col">Area</th>
+              <th scope="col">Link</th>
+            </tr>
+          </thead>
+          <tbody>`
+    cleanData?.forEach(recipe => {
+      tableData += `<tr>
+            <th scope="row">${recipe?.id}</th>
+            <td><img src="${recipe?.imageLink}" style="max-height: 200px;max-width: 200px;"/></td>
+            <td>${recipe?.name}</td>
+            <td class="${type != 'like' ? 'd-none' : ''}">${recipe?.totalLikes}</td>
+            <td class="${type != 'dislike' ? 'd-none' : ''}">${recipe?.totalDislikes}</td>
+            <td class="${type != 'ratings' ? 'd-none' : ''}">${recipe?.totalRatings}</td>
+            <td class="${type != 'viewCount' ? 'd-none' : ''}">${recipe?.totalCounts}</td>
+            <td>${recipe?.ingredients[0]?.name}</td>
+            <td>${recipe?.category}</td>
+            <td>${recipe?.area}</td>
+            <td><a href="/recipe/${recipe?.id}" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a></td>
+            </tr>`;
+    });
+    return tableData += `</tbody> </table>`;
+  }
+</script>

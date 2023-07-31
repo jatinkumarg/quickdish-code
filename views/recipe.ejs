@@ -1,0 +1,89 @@
+<%- include('head.ejs', {activeTab: 'recipe' }); %>
+<div class="container">
+  <div class="card text-center">
+    <div class="card-header">
+      Recipe #<%= recipe.id %>
+    </div>
+    <div class="card-body">
+      <h3 class="card-title">
+        <%= recipe.name %>
+      </h3>
+      <h4>Category: <span class="badge bg-secondary"><%= recipe.category %></span></h4>
+      <h4>Area: <span class="badge bg-secondary"><%= recipe.area %></span></h4>
+      <img src="<%= recipe.imageLink %>" alt="<%= recipe.name %>-image" style="height:300px">
+      <div style="white-space: pre-line;font-family: Arial, sans-serif;text-align: left;">
+        <%= recipe.instructions %>
+      </div>
+      <h4>Ingredients</h4>
+      <% for (let i = 0; i < recipe?.ingredients?.length; i++) { %>
+      <span class="badge rounded-pill text-bg-info"><%= recipe.ingredients[i].name %></span>
+      <span class="badge rounded-pill text-bg-secondary"><%= recipe.ingredients[i].measure %></span>
+      <% } %>
+    </div>
+    <br />
+  </div>
+  <br />
+  <br />
+  <div class="card text-center" style="padding:10px">
+    <% if (user && user?._id) { %>
+    <div>
+      Like: <input type="checkbox" id="like" name="like" value="<%= userEngagement?.like %>" <% if (userEngagement?.like) { %> checked <% } %>>
+
+      Dislike: <input type="checkbox" id="dislike" name="dislike" value="<%= userEngagement?.dislike %>" <% if (userEngagement?.dislike) { %> checked <% } %>>
+
+      Ratings: <input min=0 max=5 type="number" id="ratings" style="width: 33px;height: 20px;" value="<%= userEngagement?.ratings %>" />
+      <br />
+      Comment:
+      <br />
+      <textarea class="form-control" placeholder="Comment" id="comment" style="margin-top:10px;margin-bottom:10px" value="<%= userEngagement?.comment %>"> <%= userEngagement?.comment %></textarea>
+
+      <button id="save" type="button" class="btn btn-outline-secondary">Save</button>
+
+    </div>
+    <%} else { %>
+    <p> Please sign in to perform like, dislike, ratings or comment actions! </p>
+    <% } %>
+  </div>
+</div>
+<%- include('foot.ejs'); %>
+
+<script>
+  const recipe = <%- JSON.stringify(recipe) %>;
+  const userEngagement = <%- JSON.stringify(userEngagement) %>;
+  const user = <%- JSON.stringify(user) %>;
+
+  $(document).ready(function() {
+    $('#save').click(() => saveEngagement());
+
+    $(document).on('change', '#like', (event) => {
+      $('#dislike').prop('checked', false);
+    });
+    $(document).on('change', '#dislike', (event) => {
+      $('#like').prop('checked', false);
+    });
+  });
+
+  function saveEngagement() {
+    const like = $('#like').is(":checked");
+    const dislike = $('#dislike').is(":checked");
+    const ratings = $('#ratings').val();
+    const comment = $('#comment').val();
+    const data = {
+      userId: user._id,
+      recipeId: recipe.id,
+      like: like,
+      dislike: dislike,
+      ratings: ratings,
+      comment: comment
+    };
+
+    axios.post(`/api/userEngagement`, data)
+      .then((response) => {
+        const res = response?.data;
+        console.log('User Engagement results:', res)
+      })
+      .catch((error) => {
+        console.error('Error user engagement:', error);
+      });
+  }
+</script>

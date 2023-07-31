@@ -1,0 +1,23 @@
+<%- include('head.ejs', {activeTab: 'main' }); %>
+<div class="container">
+  <div class="card text-center">
+    <div class="card-header">
+      User Profile
+    </div>
+    <div class="card-body">
+      <h5 class="card-title">
+        <%= user.name %>
+      </h5>
+      <p class="card-text">
+        <%= user.email %>
+      </p>
+    </div>
+    <div>
+      <a href="/logout"> <button type="submit" class="btn btn-primary btn-lg btn-block signin-button">Sign
+          Out</button>
+      </a>
+    </div>
+    <br />
+  </div>
+</div>
+<%- include('foot.ejs'); %>

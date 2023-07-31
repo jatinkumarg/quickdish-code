@@ -1,0 +1,24 @@
+<%- include('head.ejs', {activeTab: 'about' }); %>
+<div class="container-fluid text-center align-items-center">
+  <div class="row align-items-center">
+    <div class="col"></div>
+    <div class="col">
+      <h3> Welcome to Quickdish!</h3>
+      <br />
+
+      <% if (visitCount && visitCount > 0) { %>
+      <h5>You're our <%= visitCount %>th visitor :)</h5>
+      <br />
+      <% } %>
+
+      <span>
+        Here your can find exciting food recipes information with search capability by name, category, area and main ingredient. You can generate report based on most liked, disliked, viewed and rated recipes. You can also add likes, dislikes, comments to the recipes if you sign up to share your thoughts with others.
+      </span>
+      <br />
+      <br />
+      <h5>Happy cooking!</h5>
+    </div>
+    <div class="col"></div>
+  </div>
+</div>
+<%- include('foot.ejs'); %>

@@ -1,0 +1,179 @@
+<%- include('head.ejs', {activeTab: 'search' }); %>
+<div class="container-fluid text-center align-items-center">
+  <div class="row align-items-center">
+    <div class="col"></div>
+    <div class="col" style="display: contents;">
+      <div class="input-group mb-3" style="max-width: 400px;">
+        <select id="filter" class="form-select">
+          <option disabled>Select filter</option>
+          <option value="name" selected>Name</option>
+          <option value="mainIngredient">Main Ingredient</option>
+          <option value="category">Category</option>
+          <option value="area">Area</option>
+        </select>
+        <input id="searchInput" type="text" class="form-control" placeholder="Search Recipe" aria-label="Search Recipe">
+        <button id="search" type="button" class="btn btn-outline-secondary">Search</button>
+      </div>
+      <br />
+      <br />
+    </div>
+    <div class="col"></div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <% if (searchKeywords && searchKeywords?.length > 0) { %>
+      <span>Recent search keywords: <%- searchKeywords.join(', ') %></span>
+      <br />
+      <br />
+      <% } %>
+
+      <div id="searchResults"></div>
+    </div>
+  </div>
+</div>
+
+<%- include('modal.ejs'); %>
+
+<%- include('foot.ejs'); %>
+<script>
+  var searchResults = [];
+  var data = [];
+  var checkFilterType = checkFilter(filter);
+  var sortField = 'strMeal';
+  var sortOrder = 'asc';
+
+  $(document).ready(function() {
+    $('#search').click(() => doSearch());
+
+    // trigger search on enter
+    $('#searchInput').on('keydown', function(evt) {
+      if (evt.keyCode === 13) {
+        evt.preventDefault();
+        doSearch()
+      }
+    });
+
+    // sort listeners
+    $(document).on('click', '#mealName', (event) => {
+      sortField = 'strMeal';
+      sortOrder = sortOrder == 'asc' ? 'desc' : 'asc';
+      sort(sortField, sortOrder);
+    });
+
+    $(document).on('click', '#mealCategory', (event) => {
+      sortField = 'strCategory';
+      sortOrder = sortOrder == 'asc' ? 'desc' : 'asc';
+      sort(sortField, sortOrder);
+    });
+
+    $(document).on('click', '#mealArea', (event) => {
+      sortField = 'strArea';
+      sortOrder = sortOrder == 'asc' ? 'desc' : 'asc';
+      sort(sortField, sortOrder);
+    });
+
+    $(document).on('click', '#mealIngredient', (event) => {
+      sortField = 'strIngredient1';
+      sortOrder = sortOrder == 'asc' ? 'desc' : 'asc';
+      sort(sortField, sortOrder);
+    });
+  });
+
+  function checkFilter(filter) {
+    return ['mainIngredient', 'category', 'area'].includes(filter);
+  }
+
+  function doSearch() {
+    const searchInput = $("#searchInput")?.val()?.trim();
+    const filter = $("#filter")?.val();
+    checkFilterType = checkFilter(filter);
+
+    if (searchInput.length <= 0) {
+      $('#searchResults').html("<div>Please enter a search keyword.</div>");
+      return showToast("Please enter a search keyword.");
+    }
+    console.log('Searching for:', searchInput);
+    console.log('filter', filter, checkFilterType);
+
+    axios.get(`/api/search?q=${searchInput}&filter=${filter}`)
+      .then((response) => {
+        data = response?.data;
+        console.log('Search results:', data);
+
+        if (data?.length <= 0) {
+          $('#searchResults').html("<div>No results! Please enter another search keyword.</div>");
+          return showToast('No results found!');
+        };
+
+        searchResults = `<table class="table">
+          <thead>
+            <tr>
+              <th id="mealId" scope="col">#</th>
+              <th id="mealImage"  scope="col">Image</th>
+              <th id="mealName" scope="col">Name</th>
+              <th id="mealCategory" scope="col" class="${checkFilterType ? 'd-none' : ''}">Category</th>
+              <th id="mealArea" scope="col" class="${checkFilterType ? 'd-none' : ''}">Area</th>
+              <th id="mealIngredient" scope="col" class="${checkFilterType ? 'd-none' : ''}">Main Ingredient</th>
+              <th scope="col">Link</th>
+            </tr>
+          </thead>
+          <tbody>`;
+        searchResults += createTableData(data, checkFilterType);
+
+        $('#searchResults').html(searchResults);
+
+      })
+      .catch((error) => {
+        console.error('Error performing search:', error);
+      });
+  }
+
+  function sort(field, order) {
+
+    axios.post(`/api/sort?sortBy=${field}&order=${order}`, data)
+      .then((response) => {
+        data = response?.data;
+        console.log('Sort results:', data);
+
+        if (data?.length <= 0) {
+          return;
+        };
+
+        searchResults = `<table class="table">
+          <thead>
+            <tr>
+              <th id="mealId" scope="col">#</th>
+              <th id="mealImage"  scope="col">Image</th>
+              <th id="mealName" scope="col">Name${field == "strMeal" ? (order == "asc" ? '<i class="bi bi-sort-alpha-up"></i>' :  '<i class="bi bi-sort-alpha-down"></i>') : ""}</th>
+              <th id="mealCategory" scope="col" class="${checkFilterType ? 'd-none' : ''}">Category${field == "strCategory" ? (order == "asc" ? '<i class="bi bi-sort-alpha-up"></i>' :  '<i class="bi bi-sort-alpha-down"></i>'): ""}</th>
+              <th id="mealArea" scope="col" class="${checkFilterType ? 'd-none' : ''}">Area${field == "strArea" ? (order == "asc" ? '<i class="bi bi-sort-alpha-up"></i>' :  '<i class="bi bi-sort-alpha-down"></i>'): ""}</th>
+              <th id="mealIngredient" scope="col" class="${checkFilterType ? 'd-none' : ''}">Main Ingredient${field == "strIngredient1" ? (order == "asc" ? '<i class="bi bi-sort-alpha-up"></i>' :  '<i class="bi bi-sort-alpha-down"></i>'): ""}</th>
+              <th scope="col">Link</th>
+            </tr>
+          </thead>
+          <tbody>`;
+        searchResults += createTableData(data, checkFilterType);
+        $('#searchResults').html(searchResults);
+
+      })
+      .catch((error) => {
+        console.error('Error performing search:', error);
+      });
+  }
+
+  function createTableData(data, checkFilterType) {
+    let tableData = ''
+    data.map(recipe => {
+      tableData += `<tr>
+            <td scope="row">${recipe?.idMeal}</td>
+            <td><img src="${recipe?.strMealThumb}" style="max-height: 200px;max-width: 200px;"/></td>
+            <td>${recipe?.strMeal}</td>
+            <td class="${checkFilterType ? 'd-none' : ''}">${recipe?.strCategory}</td>
+            <td class="${checkFilterType ? 'd-none' : ''}">${recipe?.strArea}</td>
+            <td class="${checkFilterType ? 'd-none' : ''}">${recipe?.strIngredient1}</td>
+            <td><a href="/recipe/${recipe?.idMeal}" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a></td>
+            </tr>`;
+    });
+    return tableData += `</tbody> </table>`;
+  }
+</script>
